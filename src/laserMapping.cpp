@@ -1275,6 +1275,14 @@ private:
         P_pose(4,4) += gyr_noise;
         P_pose(5,5) += gyr_noise;
 
+        for (int i = 0; i < 6; i++) {
+            Eigen::Matrix<double, 6, 1> v = degen_eigenvectors.col(i);
+            double projected_var = v.transpose() * P_pose * v;
+            double crlb_var = LASER_POINT_COV / std::max(degen_eigenvalues(i), 1e-10);
+            if (crlb_var > projected_var)
+                P_pose += (crlb_var - projected_var) * v * v.transpose();
+        }
+
         M3D R = anchor.rot;
         P_pose.block<3,3>(3, 3) = R * P_pose.block<3,3>(3, 3) * R.transpose();
         P_pose.block<3,3>(0, 3) = P_pose.block<3,3>(0, 3) * R.transpose();
